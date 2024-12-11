@@ -1,0 +1,14 @@
+[Unit]
+Description=HSD Daemon
+Requires=network-online.target
+After=network-online.target
+
+[Service] 
+ExecStart=node {{ ansible_env.PWD }}/hsd/bin/hsd --prefix={{ ansible_env.PWD }}/.hsd
+
+Restart=always
+TimeoutSec=120
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target 

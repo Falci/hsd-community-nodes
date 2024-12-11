@@ -1,0 +1,58 @@
+name: Add host to inventory
+
+on:
+  workflow_dispatch:
+    inputs:
+      ip_address:
+        description: 'IP address'
+        required: true
+      username:
+        description: 'Username for SSH login'
+        required: false
+        default: 'root'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check requirements
+        uses: dawidd6/action-ansible-playbook@v2
+        with:
+          playbook: check-requirement.yml
+          directory: ./ansible
+          key: ${{secrets.SSH_PRIVATE_KEY}}
+          inventory: |
+            [all]
+            ${{ github.event.inputs.ip_address }} ansible_user=${{ github.event.inputs.username }}
+
+      - name: Add IP to inventory
+        run: |
+          rm -rf ./ansible/.ansible_*
+
+          INFO=$(curl -s "http://ip-api.com/json/${{ github.event.inputs.ip_address }}?fields=status,country,city,isp")
+          echo "JSON Response: $INFO"
+          INFO=$(echo "$INFO" | jq -r '"\(.city)/\(.country) - \(.isp)"')
+
+          # Add IP to inventory file
+          echo "" >> ./ansible/inventory.ini
+          echo "# ${{ github.actor }} - $INFO" >> ./ansible/inventory.ini
+          echo "${{ github.event.inputs.ip_address }} ansible_user=${{ github.event.inputs.username }}" >> ./ansible/inventory.ini
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: master
+          branch: add-ip-${{ github.event.inputs.ip_address }}
+          title: 'Add IP: ${{ github.event.inputs.ip_address }}'
+          commit-message: 'chore(inventory): Add ${{ github.event.inputs.ip_address }}'
+          body: |
+            This PR adds the IP address `${{ github.event.inputs.ip_address }}` to the inventory.
+            Requested by: @${{ github.actor }}

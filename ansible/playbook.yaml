@@ -1,0 +1,87 @@
+---
+- name: Setup HSD Node
+  hosts: all
+  become: true
+
+  handlers:
+    - name: Reload UFW
+      ansible.builtin.service:
+        name: ufw
+        state: restarted
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+  pre_tasks:
+    - name: NodeJS - Get keyring
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+
+    - name: NodeJS - Add specified repository into sources list
+      ansible.builtin.apt_repository:
+        repo: deb https://deb.nodesource.com/node_20.x jammy main
+        update_cache: yes
+
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+
+  tasks:
+    - name: Install dependencies
+      apt:
+        name: 
+          - curl
+          - git
+          - ufw
+          - nodejs
+          - build-essential
+        state: latest
+
+    - name: UFW - Allow ports
+      community.general.ufw:
+        rule: allow
+        port: '{{ item }}'
+      loop:
+        - ssh
+        - 12038
+        - 44806
+
+    - name: UFW - Deny everything else and enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        logging: off
+      notify: Reload UFW
+
+    - name: 'Checkout HSD'
+      ansible.builtin.git:
+        repo: 'https://github.com/handshake-org/hsd.git'
+        dest: '{{ ansible_env.PWD }}/hsd'
+        version: 'v7.0.0'
+      register: git_checkout
+
+    - name: 'Install HSD'
+      community.general.npm:
+        path: '{{ ansible_env.PWD }}/hsd'
+      when: git_checkout.changed
+
+    - name: HSD Config
+      ansible.builtin.template:
+        src: 'files/hsd.conf'
+        dest: '{{ ansible_env.PWD }}/hsd/hsd.conf'
+
+    - name: Install service
+      ansible.builtin.template:
+        src: 'files/hsd.service'
+        dest: '/etc/systemd/system/hsd.service'
+      notify: Reload systemd
+
+    - name: Start service
+      ansible.builtin.systemd:
+        name: hsd
+        state: started
+        enabled: yes

@@ -1,0 +1,14 @@
+- name: Check HSD requirements
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if there is at least 40GB free space
+      ansible.builtin.shell: df --output=avail / | tail -n 1
+      register: disk_space
+      changed_when: false
+
+    - name: Validate free disk space
+      ansible.builtin.fail:
+        msg: "Not enough free space. At least 40GB is required."
+      when: disk_space.stdout | int < 40000000
+
