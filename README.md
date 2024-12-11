@@ -7,7 +7,7 @@ In other words, this repository is used to deploy and maintain the hsd on the no
 
 1. Create a new server instance in your preferred cloud provider.
 2. Add our [public key](./ssh_key.pub) to the authorized_keys file.
-3. Use [this GitHub Action](https://github.com/Falci/hsd-community-nodes/actions/workflows/update-inventory.yml) to add the server to the inventory.
+3. Use [this GitHub Action](https://github.com/Falci/hsd-community-nodes/actions/workflows/update-inventory.yaml) to add the server to the inventory.
    - You will need to provide the IP address and the username of the server.
 
 From there, we will check if the server has the necessary requirements to run the hsd and if it does, we will deploy the hsd on the server.
@@ -36,7 +36,7 @@ Note: This will grant us access to the server. By adding the public key to the a
 
 ### Add the server to the inventory
 
-Use [this GitHub Action](https://github.com/Falci/hsd-community-nodes/actions/workflows/update-inventory.yml) to add the server to the inventory.
+Use [this GitHub Action](https://github.com/Falci/hsd-community-nodes/actions/workflows/update-inventory.yaml) to add the server to the inventory.
 It will ask for the IP address and the username of the server. Then, it will run some checks to see if the server has the necessary requirements to run the hsd.
 If the server passes the checks, the same action will create a Pull Request to add the server to the inventory.
 Please, don't create a Pull Request manually.
